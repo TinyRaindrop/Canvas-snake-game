@@ -18,7 +18,7 @@ export class Canvas {
   _calculateGridSize(elementSize) {
     this.grid.columns = Math.floor(elementSize.width / this.grid.scale);
     this.grid.rows = Math.floor(elementSize.height / this.grid.scale);
-    console.log('cells', this.grid);
+    console.log('Grid', this.grid);
   }
 
   _fitCanvasToGrid() {
@@ -38,13 +38,15 @@ export class Canvas {
     this.ctx.lineWidth = 1;
     this.ctx.strokeStyle = '#333333';
     for (let column = 1; column < this.grid.columns; column++) {
-      this.ctx.moveTo(column * this.grid.scale, 0);
-      this.ctx.lineTo(column * this.grid.scale, canvas.height);
+      this.ctx.beginPath();
+      this.ctx.moveTo(column * this.grid.scale + 0.5, 0.5);
+      this.ctx.lineTo(column * this.grid.scale + 0.5, this.el.height + 0.5);
       this.ctx.stroke();
     }
     for (let row = 1; row < this.grid.rows; row++) {
-      this.ctx.moveTo(0, row * this.grid.scale);
-      this.ctx.lineTo(this.el.width, row * this.grid.scale);
+      this.ctx.beginPath();
+      this.ctx.moveTo(0.5, row * this.grid.scale + 0.5);
+      this.ctx.lineTo(this.el.width + 0.5, row * this.grid.scale + 0.5);
       this.ctx.stroke();
     }
   }
