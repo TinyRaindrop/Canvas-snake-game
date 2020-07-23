@@ -1,87 +1,65 @@
+import { Canvas } from './canvas.js';
 import { Snake } from './snake.js';
 import { Food } from './food.js';
-import { getRandomInt, getRandomSign } from './util.js';
 
-const gameRate = 1; // Render ticks per second
-const gridUnit = 20; // Pixels per grid square
-const snakeLength = 3;
+const GRID_SCALE = 30; // Pixels per grid square
+const GAME_SPEED = 120; // Milliseconds bettween re-renders
+const SNAKE_LENGTH = 1; // Starting snake length, including head
 
-const canvasWrapper = document.querySelector('.canvas-wrapper');
-const canvas = document.querySelector('#canvas');
-const ctx = canvas.getContext('2d');
-
-resizeCanvas();
+const canvas = new Canvas('#canvas', GRID_SCALE);
+const snake = new Snake(canvas, SNAKE_LENGTH);
+// const food = new Food(canvas);
 
 let lastRenderTime = 0;
-let mainLoop = requestAnimationFrame(render);
+
+// let mainLoop = requestAnimationFrame(render);
 
 function render(currentFrameTime) {
   mainLoop = requestAnimationFrame(render);
 
   const sinceLastRender = currentFrameTime - lastRenderTime;
-  lastRenderTime = currentFrameTime;
-  if (sinceLastRender < 1 / gameRate) return;
-  // console.log('sinceLastRender', sinceLastRender);
+  if (sinceLastRender > GAME_SPEED) {
+    console.log('sinceLastRender', sinceLastRender);
 
-  // resizeCanvas();
-  draw();
+    update();
+    draw();
+
+    lastRenderTime = currentFrameTime;
+  }
+}
+
+function update() {
+  snake.move();
+  // snake.checkCollision();
+  // snake.devour();
 }
 
 function draw() {
-  //
+  clearCanvas();
+  // drawGrid();
+
+  snake.draw(grid);
+  // food.draw();
 }
 
-function resizeCanvas() {
-  let wrapperStyle = window.getComputedStyle(canvasWrapper);
-  let containerSize = {
-    w: parseInt(wrapperStyle.width, 10),
-    h: parseInt(wrapperStyle.height, 10)
-  };
-  console.log(containerSize, [canvas.width, canvas.height]);
-
-  let adjustedSize = calculateGrid(containerSize);
-  canvas.width = adjustedSize.w;
-  canvas.height = adjustedSize.h;
-
-  /* if (canvas.width != containerSize.w || canvas.height != containerSize.h) {
-    canvas.width = containerSize.w;
-    canvas.height = containerSize.h;
-    console.log('resizeCanvas -> canvas.height', canvas.height);
-    return true;
-  } */
-  return false;
-}
-
-function calculateGrid(containerSize) {
-  let cellsX = Math.floor(containerSize.w / gridUnit);
-  let cellsY = Math.floor(containerSize.h / gridUnit);
-  console.log('cells', `${cellsX} : ${cellsY}`);
-
-  let adjustedSize = { w: cellsX * gridUnit, h: cellsY * gridUnit };
-
-  console.log('calculateGrid -> adjusted', adjustedSize);
-  return adjustedSize;
-}
-
-function drawGrid() {
-  ctx.lineWidth = 1;
-  ctx.strokeStyle = '#494949';
-  for (let column = 1; column < cellsX; column++) {
-    ctx.moveTo(column * gridUnit, 0);
-    ctx.lineTo(column * gridUnit, canvas.height);
-    ctx.stroke();
-  }
-  for (let row = 1; row < cellsY; row++) {
-    ctx.moveTo(0, row * gridUnit);
-    ctx.lineTo(canvas.width, row * gridUnit);
-    ctx.stroke();
-  }
-}
+const keyControls = new Map([
+  [['ArrowLeft', 'A', 'a'], { x: -1, y: 0 }],
+  [['ArrowRight', 'D', 'd'], { x: 1, y: 0 }],
+  [['ArrowUp', 'W', 'w'], { x: 0, y: -1 }],
+  [['ArrowDown', 'S', 's'], { x: 0, y: 1 }]
+]);
 
 document.addEventListener('keydown', handleKeypress);
 function handleKeypress(event) {
   let pressedKey = event.key;
-  console.log('handleKeypress -> pressedKey', pressedKey);
+
+  keyControls.forEach((direction, keys) => {
+    if (keys.includes(pressedKey)) {
+      event.preventDefault();
+      console.log(direction);
+      snake.changeDirection(direction);
+    }
+  });
 
   if (pressedKey === 'Escape') cancelAnimationFrame(mainLoop);
 }
