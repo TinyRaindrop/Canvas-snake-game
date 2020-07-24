@@ -6,11 +6,11 @@ import { Food } from './food.js';
 const FRAME_TIME = 7 * (1000 / 60) - 1; // Milliseconds bettween re-renders
 const GRID_SCALE = 33; // Pixels per grid square
 const SNAKE_LENGTH = 3; // Starting snake length, [1..n]
-const SNAKE_COLOR = { head: '#7065DD', tail: '#0095DD' };
-const FOOD_COLOR = '#33DD88';
+const SNAKE_COLOR = { head: '#7733bb', tail: '#0095DD' };
+const FOOD_COLOR = '#e58864';
 const FOOD_AMOUNT = 1;
 
-let gameStarted = false;
+let gameActive = false;
 let score = 0;
 
 const canvas = new Canvas('#canvas', GRID_SCALE);
@@ -37,7 +37,7 @@ let game = requestAnimationFrame(gameLoop);
 function gameLoop(currentTimestamp) {
   let sinceLastRender = currentTimestamp - lastTimestamp;
 
-  if (gameStarted) {
+  if (gameActive) {
     if (sinceLastRender > FRAME_TIME) {
       update();
       draw();
@@ -53,7 +53,11 @@ function gameLoop(currentTimestamp) {
 function update() {
   snake.updateDirection();
   snake.move();
-  snake.detectCollision(canvas.grid);
+  snake.detectCollision();
+  if (!snake.alive) {
+    gameActive = false;
+    return;
+  }
   if (snake.eat(food)) {
     snake.grow();
     food.updatePosition(getEmptyCells());
@@ -111,19 +115,15 @@ const directionControls = new Map([
 // Start game on keypress and stop on Escape
 document.addEventListener('keydown', handleKeypress);
 function handleKeypress(event) {
-  if (!gameStarted) {
-    gameStarted = true;
-    return;
-  }
+  if (!gameActive) gameActive = true;
 
-  let pressedKey = event.keyCode;
   directionControls.forEach((direction, keys) => {
-    if (keys.includes(pressedKey)) {
+    if (keys.includes(event.keyCode)) {
       event.preventDefault();
       console.log('input:', direction.name);
       snake.bufferInputCommand(direction);
     }
   });
 
-  if (pressedKey === 'Escape') cancelAnimationFrame(game);
+  if (event.key === 'Escape') cancelAnimationFrame(game);
 }

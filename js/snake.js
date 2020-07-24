@@ -9,6 +9,8 @@ export class Snake {
     this.head = this._getRandomStartPosition();
     this.tail = this._createTail();
     this.inputBuffer = [];
+    this.alive = true;
+    this.canGoThroughWalls = true;
     this.logCoordinates();
   }
 
@@ -60,13 +62,6 @@ export class Snake {
   }
 
   draw(ctx) {
-    ctx.fillStyle = this.color.head;
-    ctx.fillRect(
-      this.head.x * this.grid.scale,
-      this.head.y * this.grid.scale,
-      this.grid.scale,
-      this.grid.scale
-    );
     ctx.fillStyle = this.color.tail;
     this.tail.forEach((segment) => {
       ctx.fillRect(
@@ -76,6 +71,14 @@ export class Snake {
         this.grid.scale
       );
     });
+
+    ctx.fillStyle = this.color.head;
+    ctx.fillRect(
+      this.head.x * this.grid.scale,
+      this.head.y * this.grid.scale,
+      this.grid.scale,
+      this.grid.scale
+    );
   }
 
   move() {
@@ -87,21 +90,16 @@ export class Snake {
     this.head.y += this.direction.y;
   }
 
-  detectCollision(grid) {
-    this._goThroughWalls(grid);
-  }
+  detectCollision() {
+    // Wall
+    if (this.head.x < 0) this.head.x = this.grid.columns - 1;
+    if (this.head.x > this.grid.columns - 1) this.head.x = 0;
+    if (this.head.y < 0) this.head.y = this.grid.rows - 1;
+    if (this.head.y > this.grid.rows - 1) this.head.y = 0;
 
-  // TODO: rewrite this
-  _goThroughWalls(grid) {
-    if (this.head.x < 0) this.head.x = grid.columns - 1;
-    if (this.head.y < 0) this.head.y = grid.rows - 1;
-    if (this.head.x > grid.columns - 1) this.head.x = 0;
-    if (this.head.y > grid.rows - 1) this.head.y = 0;
+    // Tail
     this.tail.forEach((segment) => {
-      if (segment.x < 0) segment.x = grid.columns - 1;
-      if (segment.y < 0) segment.y = grid.rows - 1;
-      if (segment.x > grid.columns - 1) segment.x = 0;
-      if (segment.y > grid.rows - 1) segment.y = 0;
+      if (this.head.x === segment.x && this.head.y === segment.y) this.die();
     });
   }
 
@@ -111,6 +109,12 @@ export class Snake {
 
   grow() {
     this.tail.unshift({ x: this.head.x, y: this.head.y });
+  }
+
+  die() {
+    this.alive = false;
+    this.color = { head: '#555555', tail: '#777777' };
+    console.log('=> DEAD');
   }
 
   // TODO: extract all input handling into input.js
