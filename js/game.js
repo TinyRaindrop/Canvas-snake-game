@@ -2,52 +2,61 @@ import { Canvas } from './canvas.js';
 import { Snake } from './snake.js';
 import { Food } from './food.js';
 
+// TODO: run at max fps with smooth animations
 const FRAME_TIME = 7 * (1000 / 60) - 1; // Milliseconds bettween re-renders
-const GRID_SCALE = 30; // Pixels per grid square
+const GRID_SCALE = 33; // Pixels per grid square
 const SNAKE_LENGTH = 3; // Starting snake length, [1..n]
+const SNAKE_COLOR = { head: '#7065DD', tail: '#0095DD' };
+const FOOD_COLOR = '#33DD88';
 const FOOD_AMOUNT = 1;
+
+let gameStarted = false;
 let score = 0;
 
 const canvas = new Canvas('#canvas', GRID_SCALE);
-const snake = new Snake(SNAKE_LENGTH, canvas.grid);
-const food = new Food(canvas.grid);
 
-// TODO: prevent food from spawning on snake. Use Set?
-let availableCells = [];
-
+canvas._initBuffer();
 canvas.prerenderGrid();
+
+// Set of all possible coordinates on the game grid
+let gridCellCount = canvas.grid.columns * canvas.grid.rows;
+let gridCells = new Set(
+  [...Array(gridCellCount).keys()].map((i) => {
+    return `${i % canvas.grid.columns}:${i % canvas.grid.rows}`;
+  })
+);
+
+const snake = new Snake(SNAKE_LENGTH, SNAKE_COLOR, canvas.grid);
+const food = new Food(FOOD_COLOR, canvas.grid, getEmptyCells());
+
 draw();
 
-let gameStarted = false;
-let lastRenderTime = 0;
-let mainLoop = requestAnimationFrame(render);
+let lastTimestamp = 0;
+let game = requestAnimationFrame(gameLoop);
 
-function render(currentTimestamp) {
-  let sinceLastRender = currentTimestamp - lastRenderTime;
+function gameLoop(currentTimestamp) {
+  let sinceLastRender = currentTimestamp - lastTimestamp;
 
   if (gameStarted) {
     if (sinceLastRender > FRAME_TIME) {
-      // logFrameTime(sinceLastRender);
-      displayFPS(sinceLastRender);
-
       update();
       draw();
 
-      lastRenderTime = currentTimestamp;
+      // logFrameTime(sinceLastRender);
+      displayFPS(sinceLastRender);
+      lastTimestamp = currentTimestamp;
     }
   }
-
-  mainLoop = requestAnimationFrame(render);
+  game = requestAnimationFrame(gameLoop);
 }
 
 function update() {
   snake.updateDirection();
   snake.move();
-  // snake.logCoordinates();
   snake.detectCollision(canvas.grid);
   if (snake.eat(food)) {
     snake.grow();
-    food.updatePosition();
+    food.updatePosition(getEmptyCells());
     score++;
     updateScore();
   }
@@ -55,11 +64,17 @@ function update() {
 
 function draw() {
   canvas.clearCanvas();
-  canvas.drawGrid();
+  canvas.ctx.drawImage(canvas.renderedGrid, 0, 0);
 
-  snake.draw(canvas.ctx, canvas.grid);
   food.draw(canvas.ctx);
-  // food.draw();
+  snake.draw(canvas.ctx);
+}
+
+function getEmptyCells() {
+  let emptyCells = new Set(gridCells);
+  emptyCells.delete(`${snake.head.x}:${snake.head.y}`);
+  snake.tail.forEach((segment) => emptyCells.delete(`${segment.x}:${segment.y}`));
+  return emptyCells;
 }
 
 function logFrameTime(frameTime) {
@@ -73,6 +88,7 @@ function logFrameTime(frameTime) {
   );
 }
 
+// Display text
 const scoreElement = document.querySelector('.score > .value');
 function updateScore() {
   scoreElement.innerHTML = score;
@@ -84,30 +100,30 @@ function displayFPS(frameTime) {
   fpsElement.innerHTML = fps;
 }
 
+// Handle input commands
 const directionControls = new Map([
-  [['ArrowLeft', 'A', 'a'], { name: 'left', x: -1, y: 0 }],
-  [['ArrowRight', 'D', 'd'], { name: 'right', x: 1, y: 0 }],
-  [['ArrowUp', 'W', 'w'], { name: 'up', x: 0, y: -1 }],
-  [['ArrowDown', 'S', 's'], { name: 'down', x: 0, y: 1 }]
+  [[37, 65], { name: 'left', x: -1, y: 0 }],
+  [[39, 68], { name: 'right', x: 1, y: 0 }],
+  [[38, 87], { name: 'up', x: 0, y: -1 }],
+  [[40, 83], { name: 'down', x: 0, y: 1 }]
 ]);
 
+// Start game on keypress and stop on Escape
 document.addEventListener('keydown', handleKeypress);
 function handleKeypress(event) {
   if (!gameStarted) {
-    draw();
     gameStarted = true;
     return;
   }
 
-  let pressedKey = event.key;
-
+  let pressedKey = event.keyCode;
   directionControls.forEach((direction, keys) => {
     if (keys.includes(pressedKey)) {
       event.preventDefault();
-      // console.log('key =', direction.name);
+      console.log('input:', direction.name);
       snake.bufferInputCommand(direction);
     }
   });
 
-  if (pressedKey === 'Escape') cancelAnimationFrame(mainLoop);
+  if (pressedKey === 'Escape') cancelAnimationFrame(game);
 }

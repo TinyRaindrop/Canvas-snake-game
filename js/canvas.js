@@ -6,7 +6,11 @@ export class Canvas {
     this.ctx = this.el.getContext('2d');
     this.grid = { columns: 0, rows: 0, scale };
     this.resizeCanvas();
-    this.initPrerender();
+    this._initBuffer();
+  }
+
+  clearCanvas() {
+    this.ctx.clearRect(0, 0, this.el.width, this.el.height);
   }
 
   resizeCanvas() {
@@ -23,43 +27,50 @@ export class Canvas {
   }
 
   _fitCanvasToGrid() {
-    // Set canvas buffer dimentions
+    // Actual canvas resolution
     this.el.width = this.grid.columns * this.grid.scale;
     this.el.height = this.grid.rows * this.grid.scale;
-    // Set canvas element dimentions
+    // CSS dimentions
     this.el.style.width = this.el.width.toString() + 'px';
     this.el.style.height = this.el.height.toString() + 'px';
   }
 
-  clearCanvas() {
-    this.ctx.clearRect(0, 0, this.el.width, this.el.height);
+  _initBuffer() {
+    this.buffer = document.createElement('canvas');
+    this.buffer.ctx = this.buffer.getContext('2d');
   }
 
-  initPrerender() {
-    this.prerender = document.createElement('canvas');
-    this.prerender.width = this.el.width;
-    this.prerender.height = this.el.height;
-    this.prerender.ctx = this.prerender.getContext('2d');
+  _setOffCanvasSize(offCanvas, width, height) {
+    offCanvas.width = width;
+    offCanvas.height = height;
   }
 
   prerenderGrid() {
-    let ctx = this.prerender.ctx;
+    this.renderedGrid = document.createElement('canvas');
+    this._setOffCanvasSize(this.renderedGrid, this.el.width, this.el.height);
+    this._setOffCanvasSize(this.buffer, this.el.width, this.el.height);
+
+    this.drawGrid(this.buffer.ctx, this.grid, {
+      width: this.el.width,
+      height: this.el.height
+    });
+
+    this.renderedGrid.getContext('2d').drawImage(this.buffer, 0, 0);
+  }
+
+  drawGrid(ctx, grid, dimentions) {
     ctx.lineWidth = 1;
     ctx.strokeStyle = '#333333';
     ctx.beginPath();
-    for (let column = 1; column < this.grid.columns; column++) {
-      ctx.moveTo(column * this.grid.scale + 0.5, 0.5);
-      ctx.lineTo(column * this.grid.scale + 0.5, this.el.height + 0.5);
+    for (let column = 1; column < grid.columns; column++) {
+      ctx.moveTo(column * grid.scale + 0.5, 0.5);
+      ctx.lineTo(column * grid.scale + 0.5, dimentions.height + 0.5);
       ctx.stroke();
     }
-    for (let row = 1; row < this.grid.rows; row++) {
-      ctx.moveTo(0.5, row * this.grid.scale + 0.5);
-      ctx.lineTo(this.el.width + 0.5, row * this.grid.scale + 0.5);
+    for (let row = 1; row < grid.rows; row++) {
+      ctx.moveTo(0.5, row * grid.scale + 0.5);
+      ctx.lineTo(dimentions.width + 0.5, row * grid.scale + 0.5);
       ctx.stroke();
     }
-  }
-
-  drawGrid() {
-    this.ctx.drawImage(this.prerender, 0, 0);
   }
 }

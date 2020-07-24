@@ -6,6 +6,7 @@ My first time playing with Canvas.
 
 ### **Features:**
 
+- [ ] smooth animations
 - [x] randomized starting positions
 - [ ] various difficulty settings
   - [ ] adjustable speed

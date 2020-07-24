@@ -1,10 +1,12 @@
 import { getRandomInt } from './util.js';
 
 export class Snake {
-  constructor(length, grid) {
+  constructor(length, color, grid) {
     this.length = length > 1 ? length : 1;
+    this.color = color;
+    this.grid = grid;
     this.direction = this._getRandomDirection();
-    this.head = this._getRandomStartPosition(grid);
+    this.head = this._getRandomStartPosition();
     this.tail = this._createTail();
     this.inputBuffer = [];
     this.logCoordinates();
@@ -30,12 +32,12 @@ export class Snake {
   }
 
   // Returns Head position such that Body doesn't touch borders
-  _getRandomStartPosition(grid) {
+  _getRandomStartPosition() {
     let range = {};
     range.left = 1 + (this.direction.x > 0 ? this.length - 1 : 0);
     range.top = 1 + (this.direction.y > 0 ? this.length - 1 : 0);
-    range.right = grid.columns - 2 - (this.direction.x < 0 ? this.length - 1 : 0);
-    range.bottom = grid.rows - 2 - (this.direction.y < 0 ? this.length - 1 : 0);
+    range.right = this.grid.columns - 2 - (this.direction.x < 0 ? this.length - 1 : 0);
+    range.bottom = this.grid.rows - 2 - (this.direction.y < 0 ? this.length - 1 : 0);
 
     if (range.left > range.right || range.top > range.bottom) {
       console.log(range);
@@ -57,17 +59,22 @@ export class Snake {
     return tail;
   }
 
-  draw(ctx, grid) {
-    ctx.fillStyle = '#7065DD';
+  draw(ctx) {
+    ctx.fillStyle = this.color.head;
     ctx.fillRect(
-      this.head.x * grid.scale,
-      this.head.y * grid.scale,
-      grid.scale,
-      grid.scale
+      this.head.x * this.grid.scale,
+      this.head.y * this.grid.scale,
+      this.grid.scale,
+      this.grid.scale
     );
-    ctx.fillStyle = '#0095DD';
+    ctx.fillStyle = this.color.tail;
     this.tail.forEach((segment) => {
-      ctx.fillRect(segment.x * grid.scale, segment.y * grid.scale, grid.scale, grid.scale);
+      ctx.fillRect(
+        segment.x * this.grid.scale,
+        segment.y * this.grid.scale,
+        this.grid.scale,
+        this.grid.scale
+      );
     });
   }
 
@@ -106,6 +113,7 @@ export class Snake {
     this.tail.unshift({ x: this.head.x, y: this.head.y });
   }
 
+  // TODO: extract all input handling into input.js
   bufferInputCommand(newDirection) {
     let length = this.inputBuffer.length;
     if (length === 0) {
@@ -115,8 +123,7 @@ export class Snake {
     } else this.inputBuffer.shift();
     this.inputBuffer.push(newDirection);
 
-    // let queue = this.inputBuffer.map((d) => d.name);
-    // console.log('...buffer', queue);
+    console.log(this.inputBuffer.map((d) => d.name));
   }
 
   updateDirection() {
