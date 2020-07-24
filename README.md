@@ -12,4 +12,4 @@ My first time playing with Canvas.
   - [ ] adjustable speed
   - [ ] obstacles
 - [x] game area adapts to window size (on pageload/refresh)
-- [ ] mobile controls
+- [x] mobile controls

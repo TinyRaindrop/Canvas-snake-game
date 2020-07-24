@@ -13,7 +13,14 @@ const FOOD_AMOUNT = 1;
 let gameActive = false;
 let score = 0;
 
-const canvas = new Canvas('#canvas', GRID_SCALE);
+const touchControls = document.querySelector('.touch-controls');
+const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(
+  navigator.userAgent
+);
+if (isMobile) displayTouchControls();
+
+const canvasElement = document.getElementById('canvas');
+const canvas = new Canvas(canvasElement, GRID_SCALE);
 
 canvas._initBuffer();
 canvas.prerenderGrid();
@@ -106,24 +113,66 @@ function displayFPS(frameTime) {
 
 // Handle input commands
 const directionControls = new Map([
-  [[37, 65], { name: 'left', x: -1, y: 0 }],
-  [[39, 68], { name: 'right', x: 1, y: 0 }],
-  [[38, 87], { name: 'up', x: 0, y: -1 }],
-  [[40, 83], { name: 'down', x: 0, y: 1 }]
+  ['left', [37, 65]],
+  ['right', [39, 68]],
+  ['up', [38, 87]],
+  ['down', [40, 83]]
+]);
+
+const directionMap = new Map([
+  ['left', { name: 'left', x: -1, y: 0 }],
+  ['right', { name: 'right', x: 1, y: 0 }],
+  ['up', { name: 'up', x: 0, y: -1 }],
+  ['down', { name: 'down', x: 0, y: 1 }]
 ]);
 
 // Start game on keypress and stop on Escape
 document.addEventListener('keydown', handleKeypress);
+
 function handleKeypress(event) {
   if (!gameActive) gameActive = true;
 
-  directionControls.forEach((direction, keys) => {
+  directionControls.forEach((keys, directionName) => {
     if (keys.includes(event.keyCode)) {
       event.preventDefault();
-      console.log('input:', direction.name);
-      snake.bufferInputCommand(direction);
+      console.log('input:', directionName);
+      snake.bufferInputCommand(directionMap.get(directionName));
     }
   });
 
   if (event.key === 'Escape') cancelAnimationFrame(game);
 }
+
+function displayTouchControls() {
+  touchControls.style.display = 'flex';
+}
+
+touchControls.addEventListener('touchstart', handleTouch);
+function handleTouch(event) {
+  if (!gameActive) gameActive = true;
+  console.log(event);
+
+  let newDirection;
+  if (event.target.classList.contains('left')) {
+    newDirection = getTouchDirection(-1); // counterclockwise
+  } else if (event.target.classList.contains('right')) {
+    newDirection = getTouchDirection(1); // clockwise
+  }
+  snake.bufferInputCommand(newDirection);
+}
+
+function getTouchDirection(turn) {
+  let x = snake.direction.x;
+  let y = snake.direction.y;
+  if (x === 0) {
+    x = -y * turn;
+    y = 0;
+  } else if (y === 0) {
+    y = x * turn;
+    x = 0;
+  }
+  console.log(snake.direction);
+  return { name: snake.direction.name, x, y };
+}
+
+function resetGame() {}

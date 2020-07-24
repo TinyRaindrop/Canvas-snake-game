@@ -1,8 +1,8 @@
 import { getComputedStyleDimentions } from './util.js';
 
 export class Canvas {
-  constructor(selector, scale) {
-    this.el = document.querySelector(selector);
+  constructor(element, scale) {
+    this.el = element;
     this.ctx = this.el.getContext('2d');
     this.grid = { columns: 0, rows: 0, scale };
     this.resizeCanvas();
