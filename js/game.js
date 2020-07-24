@@ -2,62 +2,110 @@ import { Canvas } from './canvas.js';
 import { Snake } from './snake.js';
 import { Food } from './food.js';
 
+const FRAME_TIME = 7 * (1000 / 60) - 1; // Milliseconds bettween re-renders
 const GRID_SCALE = 30; // Pixels per grid square
-const GAME_SPEED = 120; // Milliseconds bettween re-renders
-const SNAKE_LENGTH = 1; // Starting snake length, including head
+const SNAKE_LENGTH = 3; // Starting snake length, [1..n]
+const FOOD_AMOUNT = 1;
+let score = 0;
 
 const canvas = new Canvas('#canvas', GRID_SCALE);
-const snake = new Snake(canvas, SNAKE_LENGTH);
-// const food = new Food(canvas);
+const snake = new Snake(SNAKE_LENGTH, canvas.grid);
+const food = new Food(canvas.grid);
 
+// TODO: prevent food from spawning on snake. Use Set?
+let availableCells = [];
+
+canvas.prerenderGrid();
+draw();
+
+let gameStarted = false;
 let lastRenderTime = 0;
+let mainLoop = requestAnimationFrame(render);
 
-// let mainLoop = requestAnimationFrame(render);
+function render(currentTimestamp) {
+  let sinceLastRender = currentTimestamp - lastRenderTime;
 
-function render(currentFrameTime) {
-  mainLoop = requestAnimationFrame(render);
+  if (gameStarted) {
+    if (sinceLastRender > FRAME_TIME) {
+      // logFrameTime(sinceLastRender);
+      displayFPS(sinceLastRender);
 
-  const sinceLastRender = currentFrameTime - lastRenderTime;
-  if (sinceLastRender > GAME_SPEED) {
-    console.log('sinceLastRender', sinceLastRender);
+      update();
+      draw();
 
-    update();
-    draw();
-
-    lastRenderTime = currentFrameTime;
+      lastRenderTime = currentTimestamp;
+    }
   }
+
+  mainLoop = requestAnimationFrame(render);
 }
 
 function update() {
+  snake.updateDirection();
   snake.move();
-  // snake.checkCollision();
-  // snake.devour();
+  // snake.logCoordinates();
+  snake.detectCollision(canvas.grid);
+  if (snake.eat(food)) {
+    snake.grow();
+    food.updatePosition();
+    score++;
+    updateScore();
+  }
 }
 
 function draw() {
-  clearCanvas();
-  // drawGrid();
+  canvas.clearCanvas();
+  canvas.drawGrid();
 
-  snake.draw(grid);
+  snake.draw(canvas.ctx, canvas.grid);
+  food.draw(canvas.ctx);
   // food.draw();
 }
 
-const keyControls = new Map([
-  [['ArrowLeft', 'A', 'a'], { x: -1, y: 0 }],
-  [['ArrowRight', 'D', 'd'], { x: 1, y: 0 }],
-  [['ArrowUp', 'W', 'w'], { x: 0, y: -1 }],
-  [['ArrowDown', 'S', 's'], { x: 0, y: 1 }]
+function logFrameTime(frameTime) {
+  console.log(
+    'frame',
+    frameTime.toFixed(3),
+    '| goal',
+    FRAME_TIME.toFixed(3),
+    '| FPS',
+    (1000 / frameTime).toFixed(1)
+  );
+}
+
+const scoreElement = document.querySelector('.score > .value');
+function updateScore() {
+  scoreElement.innerHTML = score;
+}
+
+const fpsElement = document.querySelector('.fps > .value');
+function displayFPS(frameTime) {
+  let fps = Math.round(1000 / frameTime);
+  fpsElement.innerHTML = fps;
+}
+
+const directionControls = new Map([
+  [['ArrowLeft', 'A', 'a'], { name: 'left', x: -1, y: 0 }],
+  [['ArrowRight', 'D', 'd'], { name: 'right', x: 1, y: 0 }],
+  [['ArrowUp', 'W', 'w'], { name: 'up', x: 0, y: -1 }],
+  [['ArrowDown', 'S', 's'], { name: 'down', x: 0, y: 1 }]
 ]);
 
 document.addEventListener('keydown', handleKeypress);
 function handleKeypress(event) {
+  if (!gameStarted) {
+    draw();
+    gameStarted = true;
+    return;
+  }
+
   let pressedKey = event.key;
 
-  keyControls.forEach((direction, keys) => {
+  directionControls.forEach((direction, keys) => {
     if (keys.includes(pressedKey)) {
       event.preventDefault();
-      console.log(direction);
-      snake.changeDirection(direction);
+      // console.log('key =', direction.name);
+      snake.bufferInputCommand(direction);
     }
   });
 
