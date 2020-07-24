@@ -6,6 +6,7 @@ export class Canvas {
     this.ctx = this.el.getContext('2d');
     this.grid = { columns: 0, rows: 0, scale };
     this.resizeCanvas();
+    this.initPrerender();
   }
 
   resizeCanvas() {
@@ -34,20 +35,31 @@ export class Canvas {
     this.ctx.clearRect(0, 0, this.el.width, this.el.height);
   }
 
-  drawGrid() {
-    this.ctx.lineWidth = 1;
-    this.ctx.strokeStyle = '#333333';
+  initPrerender() {
+    this.prerender = document.createElement('canvas');
+    this.prerender.width = this.el.width;
+    this.prerender.height = this.el.height;
+    this.prerender.ctx = this.prerender.getContext('2d');
+  }
+
+  prerenderGrid() {
+    let ctx = this.prerender.ctx;
+    ctx.lineWidth = 1;
+    ctx.strokeStyle = '#333333';
+    ctx.beginPath();
     for (let column = 1; column < this.grid.columns; column++) {
-      this.ctx.beginPath();
-      this.ctx.moveTo(column * this.grid.scale + 0.5, 0.5);
-      this.ctx.lineTo(column * this.grid.scale + 0.5, this.el.height + 0.5);
-      this.ctx.stroke();
+      ctx.moveTo(column * this.grid.scale + 0.5, 0.5);
+      ctx.lineTo(column * this.grid.scale + 0.5, this.el.height + 0.5);
+      ctx.stroke();
     }
     for (let row = 1; row < this.grid.rows; row++) {
-      this.ctx.beginPath();
-      this.ctx.moveTo(0.5, row * this.grid.scale + 0.5);
-      this.ctx.lineTo(this.el.width + 0.5, row * this.grid.scale + 0.5);
-      this.ctx.stroke();
+      ctx.moveTo(0.5, row * this.grid.scale + 0.5);
+      ctx.lineTo(this.el.width + 0.5, row * this.grid.scale + 0.5);
+      ctx.stroke();
     }
+  }
+
+  drawGrid() {
+    this.ctx.drawImage(this.prerender, 0, 0);
   }
 }
