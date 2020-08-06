@@ -63,13 +63,13 @@ export class Canvas {
     ctx.strokeStyle = '#333333';
     ctx.beginPath();
     for (let column = 1; column < grid.columns; column++) {
-      ctx.moveTo(column * grid.scale + 0.5, 0.5);
-      ctx.lineTo(column * grid.scale + 0.5, dimentions.height + 0.5);
+      ctx.moveTo(column * grid.scale, 0);
+      ctx.lineTo(column * grid.scale, dimentions.height);
       ctx.stroke();
     }
     for (let row = 1; row < grid.rows; row++) {
-      ctx.moveTo(0.5, row * grid.scale + 0.5);
-      ctx.lineTo(dimentions.width + 0.5, row * grid.scale + 0.5);
+      ctx.moveTo(0, row * grid.scale);
+      ctx.lineTo(dimentions.width, row * grid.scale);
       ctx.stroke();
     }
   }

@@ -1,22 +1,25 @@
 import { Canvas } from './canvas.js';
 import { Snake } from './snake.js';
 import { Food } from './food.js';
+import { isMobile } from './util.js';
 
-// TODO: run at max fps with smooth animations
-const FRAME_TIME = 7 * (1000 / 60) - 1; // Milliseconds bettween re-renders
+const UPDATE_TIME = 120;
 const GRID_SCALE = 33; // Pixels per grid square
 const SNAKE_LENGTH = 3; // Starting snake length, [1..n]
 const SNAKE_COLOR = { head: '#7733bb', tail: '#0095DD' };
 const FOOD_COLOR = '#e58864';
 const FOOD_AMOUNT = 1;
 
-let gameActive = false;
+let game;
+let gameState; // loaded > active > finished
+let lastUpdateTimestamp = 0;
+let lastAnimateTimestamp = 0;
+let sinceLastUpdate = 0;
+let sinceLastAnimate = 0;
 let score = 0;
 
 const touchControls = document.querySelector('.touch-controls');
-const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(
-  navigator.userAgent
-);
+
 if (isMobile) displayTouchControls();
 
 const canvasElement = document.getElementById('canvas');
@@ -36,24 +39,44 @@ let gridCells = new Set(
 const snake = new Snake(SNAKE_LENGTH, SNAKE_COLOR, canvas.grid);
 const food = new Food(FOOD_COLOR, canvas.grid, getEmptyCells());
 
-draw();
+loadGame();
+function loadGame() {
+  draw();
 
-let lastTimestamp = 0;
-let game = requestAnimationFrame(gameLoop);
+  document.addEventListener('keydown', handleKeypress);
+  if (isMobile) touchControls.addEventListener('touchstart', handleTouch);
 
+  gameState = 'loaded';
+  game = requestAnimationFrame(gameLoop);
+}
+
+function stopGame() {
+  gameState = 'finished';
+  cancelAnimationFrame(game);
+}
+
+let animationDistance = 0;
+let lastFrameDuration = 0;
 function gameLoop(currentTimestamp) {
-  let sinceLastRender = currentTimestamp - lastTimestamp;
+  sinceLastUpdate = currentTimestamp - lastUpdateTimestamp;
 
-  if (gameActive) {
-    if (sinceLastRender > FRAME_TIME) {
+  if (gameState === 'active') {
+    if (sinceLastUpdate > UPDATE_TIME) {
       update();
       draw();
-
-      // logFrameTime(sinceLastRender);
-      displayFPS(sinceLastRender);
-      lastTimestamp = currentTimestamp;
+      lastUpdateTimestamp = currentTimestamp;
+      lastFrameDuration = sinceLastUpdate;
+    } else if (animationDistance * canvas.grid.scale >= 1) {
+      draw();
+      snake.animate(canvas.ctx, animationDistance);
+      lastAnimateTimestamp = currentTimestamp;
     }
+    animationDistance = (currentTimestamp - lastUpdateTimestamp) / lastFrameDuration;
+
+    // logFrameTime(sinceLastAnimate);
+    // displayFPS(sinceLastRender);
   }
+
   game = requestAnimationFrame(gameLoop);
 }
 
@@ -62,14 +85,13 @@ function update() {
   snake.move();
   snake.detectCollision();
   if (!snake.alive) {
-    gameActive = false;
+    stopGame();
     return;
   }
   if (snake.eat(food)) {
     snake.grow();
     food.updatePosition(getEmptyCells());
-    score++;
-    updateScore();
+    setScore(score + 1);
   }
 }
 
@@ -93,7 +115,7 @@ function logFrameTime(frameTime) {
     'frame',
     frameTime.toFixed(3),
     '| goal',
-    FRAME_TIME.toFixed(3),
+    UPDATE_TIME.toFixed(3),
     '| FPS',
     (1000 / frameTime).toFixed(1)
   );
@@ -101,7 +123,8 @@ function logFrameTime(frameTime) {
 
 // Display text
 const scoreElement = document.querySelector('.score > .value');
-function updateScore() {
+function setScore(value) {
+  score = value;
   scoreElement.innerHTML = score;
 }
 
@@ -126,32 +149,24 @@ const directionMap = new Map([
   ['down', { name: 'down', x: 0, y: 1 }]
 ]);
 
-// Start game on keypress and stop on Escape
-document.addEventListener('keydown', handleKeypress);
-
 function handleKeypress(event) {
-  if (!gameActive) gameActive = true;
-
+  if (!gameStateAllowsToPlay()) return;
   directionControls.forEach((keys, directionName) => {
     if (keys.includes(event.keyCode)) {
       event.preventDefault();
-      console.log('input:', directionName);
       snake.bufferInputCommand(directionMap.get(directionName));
     }
   });
 
-  if (event.key === 'Escape') cancelAnimationFrame(game);
+  if (event.key === 'Escape') stopGame();
 }
 
 function displayTouchControls() {
   touchControls.style.display = 'flex';
 }
 
-touchControls.addEventListener('touchstart', handleTouch);
 function handleTouch(event) {
-  if (!gameActive) gameActive = true;
-  console.log(event);
-
+  if (!gameStateAllowsToPlay()) return;
   let newDirection;
   if (event.target.classList.contains('left')) {
     newDirection = getTouchDirection(-1); // counterclockwise
@@ -175,4 +190,11 @@ function getTouchDirection(turn) {
   return { name: snake.direction.name, x, y };
 }
 
-function resetGame() {}
+function gameStateAllowsToPlay() {
+  if (gameState === 'finished') {
+    return false;
+  } else if (gameState === 'loaded') {
+    gameState = 'active';
+  }
+  return true;
+}

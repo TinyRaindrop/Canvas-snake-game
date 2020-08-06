@@ -81,6 +81,31 @@ export class Snake {
     );
   }
 
+  animate(ctx, distance) {
+    let rect = this.getAnimationCoordinates(this.head, this.direction, distance);
+    // let rect = this.getAnimationCoordinates(this.tail[0], this.direction, distance);
+    if (rect.w && rect.h) {
+      // ctx.fillStyle = this.color.head;
+      ctx.fillRect(rect.x, rect.y, rect.w, rect.h);
+    }
+  }
+
+  getAnimationCoordinates(segment, direction, distance) {
+    let rectangle = {
+      x: this.head.x,
+      y: this.head.y,
+      w: this.direction.x === 0 ? 1 : distance,
+      h: this.direction.y === 0 ? 1 : distance
+    };
+    if (this.direction.x !== 0) rectangle.x += this.direction.x < 0 ? -distance : 1;
+    if (this.direction.y !== 0) rectangle.y += this.direction.y < 0 ? -distance : 1;
+    for (let key in rectangle) rectangle[key] = ~~(rectangle[key] * this.grid.scale);
+
+    if (this.direction.x < 0) rectangle.w++;
+    if (this.direction.y < 0) rectangle.h++;
+    return rectangle;
+  }
+
   move() {
     if (this.tail.length) {
       this.tail.unshift({ x: this.head.x, y: this.head.y });
@@ -127,7 +152,7 @@ export class Snake {
     } else this.inputBuffer.shift();
     this.inputBuffer.push(newDirection);
 
-    console.log(this.inputBuffer.map((d) => d.name));
+    // console.log(this.inputBuffer.map((d) => d.name));
   }
 
   updateDirection() {

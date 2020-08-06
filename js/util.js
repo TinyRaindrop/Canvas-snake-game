@@ -1,3 +1,7 @@
+export const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(
+  navigator.userAgent
+);
+
 export function getRandomInt(min, max) {
   return Math.floor(Math.random() * (max - min + 1) + min);
 }
